@@ -1,9 +1,12 @@
 using System;
 
 using ComplexPrototypeSystem.Service.Client;
+using ComplexPrototypeSystem.Service.Controllers;
+using ComplexPrototypeSystem.Service.DAO;
 using ComplexPrototypeSystem.Service.Data;
 using ComplexPrototypeSystem.Service.Worker;
 
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 
@@ -11,27 +14,29 @@ namespace ComplexPrototypeSystem.Service
 {
     public class Program
     {
+        public static IConfigurationRoot Configuration { get; private set; }
+
         public static void Main(string[] args)
         {
+            //Directory.SetCurrentDirectory(AppDomain.CurrentDomain.BaseDirectory);
+
             CreateHostBuilder(args)
-                .UseWindowsService()
                 .Build()
                 .Run();
         }
 
         public static IHostBuilder CreateHostBuilder(string[] args) =>
             Host.CreateDefaultBuilder(args)
+                .UseWindowsService()
                 .ConfigureServices((hostContext, services) =>
                 {
                     services.AddSingleton<MessageQueue>();
+                    services.AddSingleton<ConfigDAO>();
 
-                    services.AddSingleton<string>(x => Guid.NewGuid().ToString());
+                    services.AddHostedService<CPUInfoCollectorWorker>();
+                    services.AddHostedService<SignalRClient>();
 
-                    services.AddSingleton<CPUInfoCollectorWorker>();
-                    services.AddSingleton<IHostedService>(p => p.GetService<CPUInfoCollectorWorker>());
-
-                    services.AddSingleton<SignalRClient>();
-                    services.AddSingleton<IHostedService>(p => p.GetService<SignalRClient>());
+                    services.AddSingleton<IController, Controller>();
                 });
     }
 }
