@@ -38,7 +38,7 @@ namespace ComplexPrototypeSystem.Service.Data
             {
                 tempF = 0;
                 usage = 0;
-                logger.LogError("Unable to collect CPU temperature or Usage\n{e}", e.Message);
+                logger.LogError($"Unable to collect CPU temperature or Usage\n{e.Message}");
             }
 
             return false;
