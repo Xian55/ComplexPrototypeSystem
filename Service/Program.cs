@@ -18,8 +18,6 @@ namespace ComplexPrototypeSystem.Service
 
         public static void Main(string[] args)
         {
-            //Directory.SetCurrentDirectory(AppDomain.CurrentDomain.BaseDirectory);
-
             CreateHostBuilder(args)
                 .Build()
                 .Run();

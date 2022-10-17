@@ -9,7 +9,7 @@ using Microsoft.Extensions.Logging;
 
 namespace ComplexPrototypeSystem.Service.Worker
 {
-    public class CPUInfoCollectorWorker : BackgroundService
+    public sealed class CPUInfoCollectorWorker : BackgroundService
     {
         private readonly ILogger<CPUInfoCollectorWorker> logger;
         private readonly MessageQueue queue;

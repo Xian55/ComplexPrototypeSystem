@@ -7,7 +7,7 @@ namespace ComplexPrototypeSystem.Service.Data
         public const string FileName = "config.json";
     }
 
-    public class Config
+    public sealed class Config
     {
         public Guid Id { get; set; } = Guid.NewGuid();
 

@@ -5,7 +5,7 @@ using Microsoft.Extensions.Logging;
 
 namespace ComplexPrototypeSystem.Service.Controllers
 {
-    public class Controller : IController
+    public sealed class Controller : IController
     {
         private readonly ILogger<Controller> logger;
         private readonly MessageQueue queue;

@@ -9,7 +9,7 @@ using Microsoft.Extensions.Logging;
 
 namespace ComplexPrototypeSystem.Service.DAO
 {
-    public class ConfigDAO
+    public sealed class ConfigDAO
     {
         private readonly ILogger<ConfigDAO> logger;
 
