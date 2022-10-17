@@ -7,30 +7,35 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Configuration;
 using Microsoft.AspNetCore.SignalR.Client;
 using ComplexPrototypeSystem.Service.Data;
+using ComplexPrototypeSystem.Service.Controllers;
+using ComplexPrototypeSystem.Service.DAO;
+using System.Net.Http;
 
 namespace ComplexPrototypeSystem.Service.Client
 {
     public sealed class SignalRClient : BackgroundService
     {
         private readonly ILogger<SignalRClient> logger;
+        private readonly ConfigDAO configHandler;
         private readonly MessageQueue queue;
+        private readonly IController controller;
 
         private readonly string serverAddress;
         private readonly int serverPort;
         private readonly string serverHub;
 
-        private readonly string guid;
-
         private HubConnection connection;
 
         public SignalRClient(ILogger<SignalRClient> logger,
+            ConfigDAO configHandler,
             MessageQueue queue,
-            IConfiguration configuration,
-            string guid)
+            IController controller,
+            IConfiguration configuration)
         {
             this.logger = logger;
             this.queue = queue;
-            this.guid = guid;
+            this.controller = controller;
+            this.configHandler = configHandler;
 
             serverAddress = configuration.GetConnectionString("ServerAddress");
             serverPort = Convert.ToInt32(configuration.GetConnectionString("ServerPort"));
@@ -45,9 +50,10 @@ namespace ComplexPrototypeSystem.Service.Client
             {
                 await Connect(serverAddress, serverPort, stoppingToken);
 
-                if (queue.Send.TryTake(out string message))
+                if (connection.State == HubConnectionState.Connected &&
+                    queue.Send.TryTake(out string message))
                 {
-                    await Send(guid, message, stoppingToken);
+                    await Send(configHandler.Config.Id.ToString(), message, stoppingToken);
                 }
 
                 await Task.Delay(100, stoppingToken);
@@ -61,13 +67,39 @@ namespace ComplexPrototypeSystem.Service.Client
         {
             if (connection == null)
             {
-                connection = new HubConnectionBuilder()
-                    .WithUrl($"{serverAddress}:{port}/{serverHub}")
-                    .Build();
+                try
+                {
+                    Uri uri = new Uri($"{serverAddress}:{port}/{serverHub}");
+                    connection = new HubConnectionBuilder()
+                        .WithUrl(uri, options =>
+                        {
+                            options.UseDefaultCredentials = true;
+
+                            // TODO: workaround for 'The remote certificate is invalid according to the validation procedure.'
+                            options.HttpMessageHandlerFactory = (msg) =>
+                            {
+                                if (msg is HttpClientHandler clientHandler)
+                                {
+                                    // bypass SSL certificate
+                                    clientHandler.ServerCertificateCustomValidationCallback +=
+                                        (sender, certificate, chain, sslPolicyErrors) => { return true; };
+                                }
+
+                                return msg;
+                            };
+                        })
+                        .WithAutomaticReconnect()
+                        .Build();
+                }
+                catch (Exception ex)
+                {
+                    logger.LogError($"{ex.Message}; base Exception: {ex.GetBaseException().Message}");
+                    return;
+                }
 
                 connection.Closed += async (error) =>
                 {
-                    await Task.Delay(new Random().Next(1, 5) * 1000, stoppingToken);
+                    await Task.Delay(new Random().Next(30, 60) * 1000, stoppingToken);
                     await connection.StartAsync(stoppingToken);
                 };
 
@@ -78,6 +110,7 @@ namespace ComplexPrototypeSystem.Service.Client
                     logger.LogInformation(fullMessage);
 
                     queue.Recv.Add(message);
+                    controller.ReceiveMessage();
                 }
             }
 
@@ -90,7 +123,7 @@ namespace ComplexPrototypeSystem.Service.Client
             {
                 logger.LogError($"{ex.Message}; base Exception: {ex.GetBaseException().Message}");
 
-                await Task.Delay(new Random().Next(1, 5) * 1000, stoppingToken);
+                await Task.Delay(new Random().Next(30, 60) * 1000, stoppingToken);
                 await Connect(serverAddress, port, stoppingToken);
             }
         }
