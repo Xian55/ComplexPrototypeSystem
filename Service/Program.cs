@@ -1,3 +1,8 @@
+using System;
+
+using ComplexPrototypeSystem.Service.Data;
+using ComplexPrototypeSystem.Service.Worker;
+
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 
@@ -14,7 +19,12 @@ namespace ComplexPrototypeSystem.Service
             Host.CreateDefaultBuilder(args)
                 .ConfigureServices((hostContext, services) =>
                 {
-                    services.AddHostedService<Worker>();
+                    services.AddSingleton<MessageQueue>();
+
+                    services.AddSingleton<string>(x => Guid.NewGuid().ToString());
+
+                    services.AddSingleton<CPUInfoCollectorWorker>();
+                    services.AddSingleton<IHostedService>(p => p.GetService<CPUInfoCollectorWorker>());
                 });
     }
 }
