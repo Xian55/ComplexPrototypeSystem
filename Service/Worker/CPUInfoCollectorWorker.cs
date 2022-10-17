@@ -1,7 +1,7 @@
 using System;
 using System.Threading;
 using System.Threading.Tasks;
-
+using ComplexPrototypeSystem.Service.DAO;
 using ComplexPrototypeSystem.Service.Data;
 
 using Microsoft.Extensions.Hosting;
@@ -13,23 +13,15 @@ namespace ComplexPrototypeSystem.Service.Worker
     {
         private readonly ILogger<CPUInfoCollectorWorker> logger;
         private readonly MessageQueue queue;
+        private readonly ConfigDAO configHandler;
         private readonly CPUInfoQuery cpuInfo;
 
-        private int interval = 5000;
-        public int Interval
-        {
-            get => interval;
-            set
-            {
-                interval = value;
-                logger.LogInformation($"Initialized with Interval: {interval}");
-            }
-        }
-
         public CPUInfoCollectorWorker(ILogger<CPUInfoCollectorWorker> logger,
+            ConfigDAO configHandler,
             MessageQueue container)
         {
             this.logger = logger;
+            this.configHandler = configHandler;
             this.queue = container;
 
             cpuInfo = new CPUInfoQuery(this.logger);
@@ -46,10 +38,10 @@ namespace ComplexPrototypeSystem.Service.Worker
                     var now = DateTime.UtcNow;
 
                     logger.LogInformation($"{now} - Temp:{tempF} Usage:{usage}");
-                    queue.Send.Add($"Time:{now},TempF:{tempF},Usage:{usage}");
+                    queue.Send.Add($"Id:{configHandler.Config.Id},Time:{now},TempF:{tempF},Usage:{usage}");
                 }
 
-                await Task.Delay(Interval, stoppingToken);
+                await Task.Delay(configHandler.Config.Interval, stoppingToken);
             }
 
             cpuInfo.Dispose();
