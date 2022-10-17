@@ -9,7 +9,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ComplexPrototypeSystem.Clie
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ComplexPrototypeSystem.Shared", "Shared\ComplexPrototypeSystem.Shared.csproj", "{7722FC8D-4C23-4876-B2C6-9311DDCC19BC}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ComplexPrototypeSystem.Service", "Service\ComplexPrototypeSystem.Service.csproj", "{E1689499-61F9-4E76-B779-4EA72BC1DA7F}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ComplexPrototypeSystem.Service", "Service\ComplexPrototypeSystem.Service.csproj", "{E1689499-61F9-4E76-B779-4EA72BC1DA7F}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

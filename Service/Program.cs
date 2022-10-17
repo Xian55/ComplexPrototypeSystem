@@ -1,5 +1,6 @@
 using System;
 
+using ComplexPrototypeSystem.Service.Client;
 using ComplexPrototypeSystem.Service.Data;
 using ComplexPrototypeSystem.Service.Worker;
 
@@ -28,6 +29,9 @@ namespace ComplexPrototypeSystem.Service
 
                     services.AddSingleton<CPUInfoCollectorWorker>();
                     services.AddSingleton<IHostedService>(p => p.GetService<CPUInfoCollectorWorker>());
+
+                    services.AddSingleton<SignalRClient>();
+                    services.AddSingleton<IHostedService>(p => p.GetService<SignalRClient>());
                 });
     }
 }
