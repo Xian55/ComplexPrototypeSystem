@@ -2,7 +2,7 @@
 
 namespace ComplexPrototypeSystem.Shared
 {
-    public class CPUSensorMeasurement
+    public class CPUMeasurement
     {
         public Guid SensorGuid { get; set; }
 
@@ -10,8 +10,8 @@ namespace ComplexPrototypeSystem.Shared
 
         public int Usage { get; set; }
 
-        public int TemperatureC { get; set; }
+        public int TemperatureF { get; set; }
 
-        public int TemperatureF => 32 + (int)(TemperatureC / 0.5556);
+        public int TemperatureC => TemperatureF - 273;
     }
 }
