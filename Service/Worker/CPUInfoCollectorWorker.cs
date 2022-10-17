@@ -1,10 +1,8 @@
 using System;
-using System.ComponentModel;
 using System.Threading;
 using System.Threading.Tasks;
 
 using ComplexPrototypeSystem.Service.Data;
-using ComplexPrototypeSystem.Shared;
 
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -45,19 +43,16 @@ namespace ComplexPrototypeSystem.Service.Worker
             {
                 if (cpuInfo.Poll(out int tempF, out int usage))
                 {
-                    var m = new CPUMeasurement
-                    {
-                        DateTime = DateTime.UtcNow,
-                        TemperatureF = tempF,
-                        Usage = usage,
-                    };
+                    var now = DateTime.UtcNow;
 
-                    logger.LogInformation($"{m.DateTime} - Temp:{tempF} Usage:{usage}");
-                    queue.Send.Add($"Time:{m.DateTime},TempF:{tempF},Usage:{usage}");
+                    logger.LogInformation($"{now} - Temp:{tempF} Usage:{usage}");
+                    queue.Send.Add($"Time:{now},TempF:{tempF},Usage:{usage}");
                 }
 
                 await Task.Delay(Interval, stoppingToken);
             }
+
+            cpuInfo.Dispose();
 
             logger.LogInformation($"Stopped");
         }
