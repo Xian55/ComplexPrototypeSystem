@@ -1,7 +1,9 @@
 using System.Linq;
 
 using ComplexPrototypeSystem.Server.Data;
+using ComplexPrototypeSystem.Server.Hubs;
 using ComplexPrototypeSystem.Server.Models;
+using ComplexPrototypeSystem.Server.Services;
 
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Builder;
@@ -11,6 +13,7 @@ using Microsoft.AspNetCore.HttpsPolicy;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.UI;
 using Microsoft.AspNetCore.ResponseCompression;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -31,6 +34,9 @@ namespace ComplexPrototypeSystem.Server
         // For more information on how to configure your application, visit https://go.microsoft.com/fwlink/?LinkID=398940
         public void ConfigureServices(IServiceCollection services)
         {
+            services.AddSignalR();
+            services.AddHostedService<SensorSignalRServiceWorker>();
+
             services.AddDbContext<ApplicationDbContext>(options =>
                 options.UseSqlServer(
                     Configuration.GetConnectionString("DefaultConnection")));
@@ -79,6 +85,8 @@ namespace ComplexPrototypeSystem.Server
                 endpoints.MapRazorPages();
                 endpoints.MapControllers();
                 endpoints.MapFallbackToFile("index.html");
+
+                endpoints.MapHub<SensorHub>($"/{nameof(SensorHub)}");
             });
         }
     }
