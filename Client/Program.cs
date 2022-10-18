@@ -4,6 +4,8 @@ using System.Net.Http;
 using System.Text;
 using System.Threading.Tasks;
 
+using ComplexPrototypeSystem.Client.Services.SensorService;
+
 using Microsoft.AspNetCore.Components.WebAssembly.Authentication;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
 using Microsoft.Extensions.Configuration;
@@ -24,6 +26,7 @@ namespace ComplexPrototypeSystem.Client
 
             // Supply HttpClient instances that include access tokens when making requests to the server project
             builder.Services.AddScoped(sp => sp.GetRequiredService<IHttpClientFactory>().CreateClient("ComplexPrototypeSystem.ServerAPI"));
+            builder.Services.AddScoped<ISensorService, SensorService>();
 
             builder.Services.AddApiAuthorization();
 

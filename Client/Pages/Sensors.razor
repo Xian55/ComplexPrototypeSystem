@@ -1,0 +1,47 @@
+﻿@page "/sensors"
+@using Microsoft.AspNetCore.Components.WebAssembly.Authentication
+@inject ISensorService SensorService
+
+<h3>Sensors</h3>
+
+<table class="table">
+    <thead>
+        <tr>
+            <th>GUID</th>
+            <th>Name</th>
+            <th>Interval</th>
+            <th>IP Address</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach(var sensor in SensorService.SensorSettings)
+        {
+            <tr>
+                <td>@sensor.Guid</td>
+                <td>@sensor.Name</td>
+                <td>@sensor.Interval</td>
+                <td>@sensor.IPAddress</td>
+                <td>
+                    EDIT
+                </td>
+                <td>
+                    Delete
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>
+
+@code {
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            await SensorService.GetSensorSettings();
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            exception.Redirect();
+        }
+    }
+}
