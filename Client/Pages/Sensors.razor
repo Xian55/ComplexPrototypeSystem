@@ -1,6 +1,7 @@
 ﻿@page "/sensors"
 @using Microsoft.AspNetCore.Components.WebAssembly.Authentication
 @inject ISensorService SensorService
+@inject NavigationManager navigationManager
 
 <h3>Sensors</h3>
 
@@ -11,6 +12,7 @@
             <th>Name</th>
             <th>Interval</th>
             <th>IP Address</th>
+            <th><i>Actions</i></th>
         </tr>
     </thead>
     <tbody>
@@ -22,26 +24,38 @@
                 <td>@sensor.Interval</td>
                 <td>@sensor.IPAddress</td>
                 <td>
-                    EDIT
-                </td>
-                <td>
-                    Delete
+                    <button class="btn btn-primary" @onclick="() => ShowSensor(sensor.Guid)">
+                        <i class="oi oi-pencil"></i>
+                    </button>
                 </td>
             </tr>
         }
     </tbody>
 </table>
+<button class="btn btn-primary" @onclick="() => CreateNewSensor()">
+    <i class="oi oi-plus"></i> Create New
+</button>
 
 @code {
     protected override async Task OnInitializedAsync()
     {
         try
         {
-            await SensorService.GetSensorSettings();
+            await SensorService.GetAll();
         }
         catch (AccessTokenNotAvailableException exception)
         {
             exception.Redirect();
         }
+    }
+
+    protected void ShowSensor(Guid guid)
+    {
+        navigationManager.NavigateTo($"sensor/{guid}");
+    }
+
+    protected void CreateNewSensor()
+    {
+        navigationManager.NavigateTo($"sensor");
     }
 }

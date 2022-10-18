@@ -1,0 +1,72 @@
+﻿@page "/sensor"
+@page "/sensor/{Id:guid}"
+@inject ISensorService sensorService
+
+@if (!Id.HasValue)
+{
+    <h3>Add new Sensor</h3>
+}
+else
+{
+    <h3>Edit @sensorSettings.Name Sensor</h3>
+}
+
+<EditForm Model="sensorSettings" OnSubmit="HandleSubmit">
+    <div>
+        <label for="guid">Guid</label>
+        <label class="form-control">@sensorSettings.Guid</label>
+
+        <label for="name">Name</label>
+        <InputText id="name" @bind-Value="sensorSettings.Name" class="form-control"></InputText>
+
+        <label for="interval">Interval</label>
+        <InputNumber id="interval" @bind-Value="sensorSettings.Interval" class="form-control"></InputNumber>
+
+        <label for="ipAddress">IP Address</label>
+        <label class="form-control">@sensorSettings.IPAddress.ToString()</label>
+    </div>
+    <br />
+    <button type="submit" class="btn btn-success">@btnText</button>
+
+    @if (Id.HasValue)
+    {
+        <button type="submit" class="btn btn-danger" @onclick="Delete"><i class="oi oi-trash"></i>Delete</button>
+    }
+</EditForm>
+
+@code {
+    [Parameter]
+    public Guid? Id { get; set; }
+
+    private SensorSettings sensorSettings = new SensorSettings();
+
+    private MarkupString btnText;
+
+    protected override Task OnInitializedAsync()
+    {
+        btnText = !Id.HasValue
+        ? new MarkupString("<i class=\"oi oi-plus\"></i> Create")
+        : new MarkupString("<i class=\"oi oi-cloud-upload\"></i> Update");
+
+        return Task.CompletedTask;
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (Id.HasValue)
+            sensorSettings = await sensorService.Get(Id.Value);
+    }
+
+    protected async Task HandleSubmit()
+    {
+        if (!Id.HasValue)
+            await sensorService.Create(sensorSettings);
+        else
+            await sensorService.Update(sensorSettings);
+    }
+
+    protected async Task Delete()
+    {
+        await sensorService.Delete(Id.Value);
+    }
+}

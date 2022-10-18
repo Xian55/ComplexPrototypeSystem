@@ -10,8 +10,15 @@ namespace ComplexPrototypeSystem.Client.Services.SensorService
     {
         List<SensorSettings> SensorSettings { get; set; }
 
-        Task GetSensorSettings();
+        Task GetAll();
 
-        Task<SensorSettings> GetSingleSensorSetting(Guid guid);
+        Task<SensorSettings> Get(Guid guid);
+
+        Task Create(SensorSettings sensorSetting);
+
+        Task Update(SensorSettings sensorSetting);
+
+        Task Delete(Guid guid);
+
     }
 }
