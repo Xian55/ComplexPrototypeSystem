@@ -1,58 +1,91 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Net;
 using System.Threading.Tasks;
 
+using ComplexPrototypeSystem.Server.Data;
 using ComplexPrototypeSystem.Shared;
 
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 
 namespace ComplexPrototypeSystem.Server.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    public class SensorController : ControllerBase
+    public sealed class SensorController : ControllerBase
     {
-        public static List<SensorSettings> sensors = new List<SensorSettings>()
+        private readonly SensorSettingsDbContext context;
+
+        public SensorController(SensorSettingsDbContext context)
         {
-            new SensorSettings()
-            {
-                Guid = Guid.NewGuid(),
-                Name = "First",
-                Interval = 5000,
-                IPAddress = IPAddress.Parse("127.0.0.1")
-            },
-            new SensorSettings()
-            {
-                Guid = Guid.NewGuid(),
-                Name = "Second",
-                Interval = 15000,
-                IPAddress = IPAddress.Parse("192.168.1.150")
-            },
-            new SensorSettings()
-            {
-                Guid = Guid.NewGuid(),
-                Name = "Third",
-                Interval = 168416,
-                IPAddress = IPAddress.Parse("192.168.1.111")
-            },
-        };
+            this.context = context;
+        }
 
         [HttpGet]
         public async Task<IActionResult> GetSensorSettings()
         {
-            return Ok(sensors);
+            return Ok(await context.SensorSettings.ToListAsync());
         }
 
         [HttpGet("{guid}")]
         public async Task<IActionResult> GetSensorSetting(Guid guid)
         {
-            var sensor = sensors.FirstOrDefault(x => x.Guid == guid);
+            var sensor = await context.SensorSettings
+                .FirstOrDefaultAsync(x => x.Guid == guid);
             if (sensor == null)
-                return NotFound("Sensor Not found!");
+                return NotFound();
 
             return Ok(sensor);
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> CreateSensorSetting(
+            [FromBody] SensorSettings sensor)
+        {
+            context.SensorSettings.Add(sensor);
+
+            int changes = await context.SaveChangesAsync();
+            if (changes > 0)
+                return Ok();
+
+            return Conflict();
+        }
+
+        [HttpPut("{guid}")]
+        public async Task<IActionResult> UpdateSensorSetting(
+            [FromBody] SensorSettings sensor, [FromRoute] Guid guid)
+        {
+            var dbSensor = await context.SensorSettings
+                .FirstOrDefaultAsync(x => x.Guid == guid);
+
+            if (dbSensor == null)
+                return NotFound();
+
+            dbSensor.Name = sensor.Name;
+            dbSensor.Interval = sensor.Interval;
+            dbSensor.IPAddress = sensor.IPAddress;
+
+            int changes = await context.SaveChangesAsync();
+            if (changes > 0)
+                return Ok();
+
+            return BadRequest();
+        }
+
+        [HttpDelete("{guid}")]
+        public async Task<IActionResult> DeleteSensorSetting(Guid guid)
+        {
+            var dbSensor = await context.SensorSettings
+                .FirstOrDefaultAsync(x => x.Guid == guid);
+            if (dbSensor == null)
+                return NotFound();
+
+            context.SensorSettings.Remove(dbSensor);
+
+            int changes = await context.SaveChangesAsync();
+            if (changes > 0)
+                return Ok();
+
+            return NotFound();
         }
     }
 }

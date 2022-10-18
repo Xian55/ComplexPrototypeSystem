@@ -6,16 +6,18 @@ using System.Net;
 
 namespace ComplexPrototypeSystem.Shared
 {
-    public class SensorSettings
+    public sealed class SensorSettings
     {
-        public Guid Guid { get; set; }
+        [Key]
+        [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
+        public Guid Guid { get; set; } = Guid.NewGuid();
 
         public string Name { get; set; } = string.Empty;
 
-        public int Interval { get; set; }
+        public int Interval { get; set; } = 5000;
 
         [Required, MinLength(4), MaxLength(16)]
-        public byte[] IPAddressBytes { get; set; }
+        public byte[] IPAddressBytes { get; set; } = new byte[4];
 
         [NotMapped]
         public IPAddress IPAddress
