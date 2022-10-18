@@ -10,15 +10,15 @@ namespace ComplexPrototypeSystem.Service.Controllers
         private readonly ILogger<Controller> logger;
         private readonly MessageQueue queue;
 
-        private readonly ConfigDAO configHandler;
+        private readonly ConfigDAO configDAO;
 
         public Controller(ILogger<Controller> logger,
             MessageQueue queue,
-            ConfigDAO configHandler)
+            ConfigDAO configDAO)
         {
             this.logger = logger;
             this.queue = queue;
-            this.configHandler = configHandler;
+            this.configDAO = configDAO;
         }
 
         public void ReceiveMessage()
@@ -29,10 +29,8 @@ namespace ComplexPrototypeSystem.Service.Controllers
                 {
                     if (int.TryParse(message.Split(':')[1], out int interval))
                     {
-                        logger.LogInformation($"Interval updated to {interval}ms from {configHandler.Config.Interval}ms");
-
-                        configHandler.Config.Interval = interval;
-                        configHandler.Save();
+                        logger.LogInformation($"Interval updated to {interval}ms from {configDAO.Config.Interval}ms");
+                        configDAO.SetInterval(interval);
                     }
                 }
             }

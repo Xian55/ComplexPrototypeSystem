@@ -16,7 +16,7 @@ namespace ComplexPrototypeSystem.Service.Client
     public sealed class SignalRClient : BackgroundService
     {
         private readonly ILogger<SignalRClient> logger;
-        private readonly ConfigDAO configHandler;
+        private readonly ConfigDAO configDAO;
         private readonly MessageQueue queue;
         private readonly IController controller;
 
@@ -27,7 +27,7 @@ namespace ComplexPrototypeSystem.Service.Client
         private HubConnection connection;
 
         public SignalRClient(ILogger<SignalRClient> logger,
-            ConfigDAO configHandler,
+            ConfigDAO configDAO,
             MessageQueue queue,
             IController controller,
             IConfiguration configuration)
@@ -35,7 +35,7 @@ namespace ComplexPrototypeSystem.Service.Client
             this.logger = logger;
             this.queue = queue;
             this.controller = controller;
-            this.configHandler = configHandler;
+            this.configDAO = configDAO;
 
             serverAddress = configuration.GetConnectionString("ServerAddress");
             serverPort = Convert.ToInt32(configuration.GetConnectionString("ServerPort"));
@@ -53,7 +53,7 @@ namespace ComplexPrototypeSystem.Service.Client
                 if (connection.State == HubConnectionState.Connected &&
                     queue.Send.TryTake(out string message))
                 {
-                    await Send(configHandler.Config.Id.ToString(), message, stoppingToken);
+                    await Send(configDAO.Config.Id.ToString(), message, stoppingToken);
                 }
 
                 await Task.Delay(100, stoppingToken);

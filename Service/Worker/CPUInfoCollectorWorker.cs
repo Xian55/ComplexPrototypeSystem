@@ -13,15 +13,15 @@ namespace ComplexPrototypeSystem.Service.Worker
     {
         private readonly ILogger<CPUInfoCollectorWorker> logger;
         private readonly MessageQueue queue;
-        private readonly ConfigDAO configHandler;
+        private readonly ConfigDAO configDAO;
         private readonly CPUInfoQuery cpuInfo;
 
         public CPUInfoCollectorWorker(ILogger<CPUInfoCollectorWorker> logger,
-            ConfigDAO configHandler,
+            ConfigDAO configDAO,
             MessageQueue container)
         {
             this.logger = logger;
-            this.configHandler = configHandler;
+            this.configDAO = configDAO;
             this.queue = container;
 
             cpuInfo = new CPUInfoQuery(this.logger);
@@ -29,7 +29,7 @@ namespace ComplexPrototypeSystem.Service.Worker
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
-            logger.LogInformation($"Started");
+            logger.LogInformation("Started");
 
             while (!stoppingToken.IsCancellationRequested)
             {
@@ -38,15 +38,15 @@ namespace ComplexPrototypeSystem.Service.Worker
                     var now = DateTime.UtcNow;
 
                     logger.LogInformation($"{now} - Temp:{tempF} Usage:{usage}");
-                    queue.Send.Add($"Id:{configHandler.Config.Id},Time:{now},TempF:{tempF},Usage:{usage}");
+                    queue.Send.Add($"Id:{configDAO.Config.Id},Time:{now},TempF:{tempF},Usage:{usage}");
                 }
 
-                await Task.Delay(configHandler.Config.Interval, stoppingToken);
+                await Task.Delay(configDAO.Config.Interval, stoppingToken);
             }
 
             cpuInfo.Dispose();
 
-            logger.LogInformation($"Stopped");
+            logger.LogInformation("Stopped");
         }
     }
 }

@@ -45,5 +45,11 @@ namespace ComplexPrototypeSystem.Service.DAO
             File.WriteAllText(fileName, json);
             logger.LogInformation("Config saved");
         }
+
+        public void SetInterval(int interval)
+        {
+            Config.Interval = interval;
+            Save();
+        }
     }
 }
