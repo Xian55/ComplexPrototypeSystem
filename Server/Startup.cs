@@ -1,5 +1,4 @@
-using System.Linq;
-
+using ComplexPrototypeSystem.Server.Converters;
 using ComplexPrototypeSystem.Server.Data;
 using ComplexPrototypeSystem.Server.Hubs;
 using ComplexPrototypeSystem.Server.Models;
@@ -7,13 +6,7 @@ using ComplexPrototypeSystem.Server.Services;
 
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Builder;
-using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Hosting;
-using Microsoft.AspNetCore.HttpsPolicy;
-using Microsoft.AspNetCore.Identity;
-using Microsoft.AspNetCore.Identity.UI;
-using Microsoft.AspNetCore.ResponseCompression;
-using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -34,6 +27,11 @@ namespace ComplexPrototypeSystem.Server
         // For more information on how to configure your application, visit https://go.microsoft.com/fwlink/?LinkID=398940
         public void ConfigureServices(IServiceCollection services)
         {
+            services.AddControllers().AddJsonOptions(options =>
+            {
+                options.JsonSerializerOptions.Converters.Add(new IPAddressConverter());
+            });
+
             services.AddSignalR();
             services.AddHostedService<SensorSignalRServiceWorker>();
 
