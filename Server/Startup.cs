@@ -1,4 +1,4 @@
-using ComplexPrototypeSystem.Server.Converters;
+using ComplexPrototypeSystem.Shared.Converters;
 using ComplexPrototypeSystem.Server.Data;
 using ComplexPrototypeSystem.Server.Hubs;
 using ComplexPrototypeSystem.Server.Models;
@@ -29,6 +29,7 @@ namespace ComplexPrototypeSystem.Server
         {
             services.AddControllers().AddJsonOptions(options =>
             {
+                options.JsonSerializerOptions.PropertyNameCaseInsensitive = true;
                 options.JsonSerializerOptions.Converters.Add(new IPAddressConverter());
             });
 
