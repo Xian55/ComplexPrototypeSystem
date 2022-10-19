@@ -10,6 +10,7 @@
     <PackageReference Include="Microsoft.Extensions.Hosting" Version="6.0.1" />
     <PackageReference Include="Microsoft.Extensions.Hosting.WindowsServices" Version="6.0.1" />
     <PackageReference Include="Microsoft.Extensions.Logging.EventLog" Version="6.0.0" />
+    <PackageReference Include="SuperSimpleTcp" Version="3.0.0.2" />
     <PackageReference Include="System.Diagnostics.PerformanceCounter" Version="6.0.1" />
   </ItemGroup>
 

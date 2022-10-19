@@ -35,8 +35,9 @@ namespace ComplexPrototypeSystem.Server
 
             services.AddSwaggerGen();
 
-            services.AddSignalR();
-            services.AddHostedService<SensorSignalRServiceWorker>();
+            //services.AddSignalR();
+            //services.AddHostedService<SensorSignalRServiceWorker>();
+            services.AddHostedService<TCPServerWorker>();
 
             services.AddDbContext<ApplicationDbContext>(options =>
                 options.UseSqlServer(
@@ -94,7 +95,7 @@ namespace ComplexPrototypeSystem.Server
                 endpoints.MapControllers();
                 endpoints.MapFallbackToFile("index.html");
 
-                endpoints.MapHub<SensorHub>($"/{nameof(SensorHub)}");
+                //endpoints.MapHub<SensorHub>($"/{nameof(SensorHub)}");
             });
         }
     }

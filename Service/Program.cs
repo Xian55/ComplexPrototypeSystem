@@ -32,7 +32,8 @@ namespace ComplexPrototypeSystem.Service
                     services.AddSingleton<ConfigDAO>();
 
                     services.AddHostedService<CPUInfoCollectorWorker>();
-                    services.AddHostedService<SignalRClient>();
+                    //services.AddHostedService<SignalRClient>();
+                    services.AddHostedService<TCPClient>();
 
                     services.AddSingleton<IController, Controller>();
                 });
