@@ -33,6 +33,8 @@ namespace ComplexPrototypeSystem.Server
                 options.JsonSerializerOptions.Converters.Add(new IPAddressConverter());
             });
 
+            services.AddSwaggerGen();
+
             services.AddSignalR();
             services.AddHostedService<SensorSignalRServiceWorker>();
 
@@ -62,6 +64,9 @@ namespace ComplexPrototypeSystem.Server
         {
             if (env.IsDevelopment())
             {
+                app.UseSwagger();
+                app.UseSwaggerUI();
+
                 app.UseDeveloperExceptionPage();
                 app.UseDatabaseErrorPage();
                 app.UseWebAssemblyDebugging();
