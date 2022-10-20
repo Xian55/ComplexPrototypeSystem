@@ -48,13 +48,13 @@ namespace ComplexPrototypeSystem.Service.Controllers
 
         public void SetInterval(int size, ArraySegment<byte> payload)
         {
-            int newInterval = Convert.ToInt32(payload);
+            int newInterval = BitConverter.ToInt32(payload);
             int oldInterval = configDAO.Config.Interval;
 
             if (oldInterval != newInterval)
             {
-                configDAO.SetInterval(newInterval);
                 logger.LogInformation($"Interval updated to {newInterval}ms from {oldInterval}ms");
+                configDAO.SetInterval(newInterval);
             }
         }
     }

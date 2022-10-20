@@ -14,7 +14,6 @@ using System.Net;
 using System.Collections.Generic;
 using ComplexPrototypeSystem.Shared;
 using System.IO;
-using ComplexPrototypeSystem.Server.Migrations;
 
 namespace ComplexPrototypeSystem.Server.Services
 {
@@ -79,6 +78,18 @@ namespace ComplexPrototypeSystem.Server.Services
                     !stoppingToken.IsCancellationRequested)
                 {
                     server.Send(data.Key, data.Value);
+                }
+
+                while (queue.SendInterval.TryTake(out var data) &&
+                    !stoppingToken.IsCancellationRequested)
+                {
+                    // TODO: better way to map sensor Guid -> ipadress:port
+                    Guid guid = Guid.Parse(data.Key);
+                    var ipPort = connectionToGuid.FirstOrDefault(x => x.Value == guid).Key;
+                    if (!string.IsNullOrEmpty(ipPort))
+                    {
+                        server.Send(ipPort, data.Value);
+                    }
                 }
 
                 await Task.Delay(100, stoppingToken);
@@ -203,6 +214,5 @@ namespace ComplexPrototypeSystem.Server.Services
                 logger.LogWarning($"Report not added: {id} - {time} - {tempF} - {usage}");
             }
         }
-
     }
 }
