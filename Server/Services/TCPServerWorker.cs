@@ -14,6 +14,7 @@ using System.Net;
 using System.Collections.Generic;
 using ComplexPrototypeSystem.Shared;
 using System.IO;
+using System.Runtime.InteropServices;
 
 namespace ComplexPrototypeSystem.Server.Services
 {
@@ -184,7 +185,20 @@ namespace ComplexPrototypeSystem.Server.Services
 
                 var dbSensor = settingsContext.SensorSettings.FirstOrDefault(x => x.Guid == id);
                 if (dbSensor != null)
+                {
                     connectionToGuid[client] = id;
+
+                    using MemoryStream ms = new MemoryStream();
+                    using var bw = new BinaryWriter(ms);
+
+                    bw.Write((byte)Opcode.SetInterval);
+
+                    int sizeInterval = Marshal.SizeOf(dbSensor.Interval);
+                    bw.Write(sizeInterval);
+                    bw.Write(dbSensor.Interval);
+
+                    queue.Send.Add(new KeyValuePair<string, byte[]>(client, ms.ToArray()));
+                }
             }
         }
 
