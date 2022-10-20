@@ -14,6 +14,7 @@ using System.Net;
 using System.Collections.Generic;
 using ComplexPrototypeSystem.Shared;
 using System.IO;
+using ComplexPrototypeSystem.Server.Migrations;
 
 namespace ComplexPrototypeSystem.Server.Services
 {
@@ -23,7 +24,8 @@ namespace ComplexPrototypeSystem.Server.Services
         private readonly SimpleTcpServer server;
         private readonly MessageQueue queue;
 
-        private readonly SensorSettingsDbContext context;
+        private readonly SensorSettingsDbContext settingsContext;
+        private readonly SensorReportDbContext reportsContext;
 
         private readonly string address;
         private readonly int port;
@@ -41,9 +43,13 @@ namespace ComplexPrototypeSystem.Server.Services
             this.logger = logger;
             this.queue = queue;
 
-            this.context = serviceProvider
+            this.settingsContext = serviceProvider
                 .CreateScope().ServiceProvider
                 .GetRequiredService<SensorSettingsDbContext>();
+
+            this.reportsContext = serviceProvider
+                .CreateScope().ServiceProvider
+                .GetRequiredService<SensorReportDbContext>();
 
             address = configuration["TcpServer:Address"];
             port = Convert.ToInt32(configuration["TcpServer:Port"]);
@@ -137,11 +143,11 @@ namespace ComplexPrototypeSystem.Server.Services
                     IPAddress = newIp,
                 };
 
-                var dbSensor = context.SensorSettings.FirstOrDefault(x => x.Guid == id);
+                var dbSensor = settingsContext.SensorSettings.FirstOrDefault(x => x.Guid == id);
                 if (dbSensor == null)
                 {
-                    context.SensorSettings.Add(sensorSettings);
-                    int change = context.SaveChanges();
+                    settingsContext.SensorSettings.Add(sensorSettings);
+                    int change = settingsContext.SaveChanges();
                     if (change > 0)
                     {
                         logger.LogInformation($"New Sensor Added {sensorSettings.Guid} - {sensorSettings.IPAddress}");
@@ -165,7 +171,7 @@ namespace ComplexPrototypeSystem.Server.Services
             {
                 logger.LogInformation($"[{client}]: {id}");
 
-                var dbSensor = context.SensorSettings.FirstOrDefault(x => x.Guid == id);
+                var dbSensor = settingsContext.SensorSettings.FirstOrDefault(x => x.Guid == id);
                 if (dbSensor != null)
                     connectionToGuid[client] = id;
             }
@@ -179,7 +185,23 @@ namespace ComplexPrototypeSystem.Server.Services
 
             Guid id = connectionToGuid[client];
 
-            logger.LogInformation($"Report: {id} - {time} - {tempF} - {usage}");
+            reportsContext.SensorReports.Add(new SensorReport()
+            {
+                SensorGuid = id,
+                DateTime = time,
+                TemperatureF = tempF,
+                Usage = usage
+            });
+
+            int change = reportsContext.SaveChanges();
+            if (change > 0)
+            {
+                logger.LogInformation($"Report added: {id} - {time} - {tempF} - {usage}");
+            }
+            else
+            {
+                logger.LogWarning($"Report not added: {id} - {time} - {tempF} - {usage}");
+            }
         }
 
     }

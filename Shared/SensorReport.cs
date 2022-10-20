@@ -1,9 +1,15 @@
 ﻿using System;
+using System.ComponentModel.DataAnnotations.Schema;
+using System.ComponentModel.DataAnnotations;
 
 namespace ComplexPrototypeSystem.Shared
 {
-    public class CPUMeasurement
+    public class SensorReport
     {
+        [Key]
+        [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
+        public Guid ReportId { get; set; } = Guid.NewGuid();
+
         public Guid SensorGuid { get; set; }
 
         public DateTime DateTime { get; set; }
