@@ -56,8 +56,13 @@ namespace ComplexPrototypeSystem.Service.Client
 
             while (!stoppingToken.IsCancellationRequested)
             {
-                while (!client.IsConnected)
+                while (!client.IsConnected && !stoppingToken.IsCancellationRequested)
                 {
+                    if (queue.Send.Count > 0)
+                    {
+                        logger.LogWarning($"Unsent messages {queue.Send.Count}");
+                    }
+
                     await Connect(stoppingToken);
                 }
 
@@ -120,10 +125,9 @@ namespace ComplexPrototypeSystem.Service.Client
             catch (Exception e)
             {
                 int nextReconnectAttempt = random.Next(30_000, 60_000);
-                logger.LogError(e, e.Message + $"\nNext reconnect attempt after {nextReconnectAttempt}s");
+                logger.LogError(e, e.Message + $"\nNext reconnect attempt after {nextReconnectAttempt}ms");
 
                 await Task.Delay(nextReconnectAttempt, stoppingToken);
-                await Connect(stoppingToken);
             }
         }
 
