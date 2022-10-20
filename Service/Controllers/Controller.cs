@@ -1,5 +1,9 @@
-﻿using ComplexPrototypeSystem.Service.DAO;
+﻿using System;
+using System.Collections.Generic;
+
+using ComplexPrototypeSystem.Service.DAO;
 using ComplexPrototypeSystem.Service.Data;
+using ComplexPrototypeSystem.Shared;
 
 using Microsoft.Extensions.Logging;
 
@@ -8,31 +12,49 @@ namespace ComplexPrototypeSystem.Service.Controllers
     public sealed class Controller : IController
     {
         private readonly ILogger<Controller> logger;
-        private readonly MessageQueue queue;
 
         private readonly ConfigDAO configDAO;
 
-        public Controller(ILogger<Controller> logger,
-            MessageQueue queue,
-            ConfigDAO configDAO)
+        private readonly Dictionary<Opcode, Action<int, ArraySegment<byte>>> handlers;
+
+        public Controller(ILogger<Controller> logger, ConfigDAO configDAO)
         {
             this.logger = logger;
-            this.queue = queue;
             this.configDAO = configDAO;
+
+            handlers =
+            new Dictionary<Opcode, Action<int, ArraySegment<byte>>>()
+            {
+                { Opcode.Identify, Identify },
+                { Opcode.SetInterval, SetInterval }
+            };
+
         }
 
-        public void ReceiveMessage()
+        public void HandleOpcode(Opcode opcode, int size, ArraySegment<byte> payload)
         {
-            if (queue.Recv.TryTake(out var message))
+            if (handlers.TryGetValue(opcode, out var handler))
             {
-                if (message.Contains("Interval:"))
-                {
-                    if (int.TryParse(message.Split(':')[1], out int interval))
-                    {
-                        logger.LogInformation($"Interval updated to {interval}ms from {configDAO.Config.Interval}ms");
-                        configDAO.SetInterval(interval);
-                    }
-                }
+                handler(size, payload);
+            }
+        }
+
+        public void Identify(int size, ArraySegment<byte> payload)
+        {
+            Guid id = new Guid(payload);
+            configDAO.SetId(id);
+            logger.LogInformation($"Registered as {id}");
+        }
+
+        public void SetInterval(int size, ArraySegment<byte> payload)
+        {
+            int newInterval = Convert.ToInt32(payload);
+            int oldInterval = configDAO.Config.Interval;
+
+            if (oldInterval != newInterval)
+            {
+                configDAO.SetInterval(newInterval);
+                logger.LogInformation($"Interval updated to {newInterval}ms from {oldInterval}ms");
             }
         }
     }

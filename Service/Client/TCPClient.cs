@@ -1,11 +1,13 @@
 ﻿using System;
-using System.Text;
+using System.Collections.Concurrent;
+using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 
 using ComplexPrototypeSystem.Service.Controllers;
 using ComplexPrototypeSystem.Service.DAO;
 using ComplexPrototypeSystem.Service.Data;
+using ComplexPrototypeSystem.Shared;
 
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
@@ -59,9 +61,13 @@ namespace ComplexPrototypeSystem.Service.Client
                     await Connect(stoppingToken);
                 }
 
-                if (client.IsConnected && queue.Send.TryTake(out string message))
+                if (client.IsConnected)
                 {
-                    await Send(message, stoppingToken);
+                    while (queue.PrioritySend.TryTake(out byte[] prio))
+                        await client.SendAsync(prio, stoppingToken);
+
+                    while (queue.Send.TryTake(out byte[] message))
+                        await client.SendAsync(message, stoppingToken);
                 }
 
                 await Task.Delay(100, stoppingToken);
@@ -76,7 +82,17 @@ namespace ComplexPrototypeSystem.Service.Client
         private void OnConnected(object sender, ConnectionEventArgs e)
         {
             logger.LogInformation($"Connected {e.IpPort}");
-            queue.Send.Add($"Id:{configDAO.Config.Id},Interval:{configDAO.Config.Interval}");
+
+            using MemoryStream ms = new MemoryStream();
+            using var bw = new BinaryWriter(ms);
+
+            bw.Write((byte)Opcode.Identify);
+
+            byte[] data = configDAO.Config.Id.ToByteArray();
+            bw.Write(data.Length);
+            bw.Write(data);
+
+            queue.PrioritySend.Add(ms.ToArray());
         }
 
         private void OnDisconnected(object sender, ConnectionEventArgs e)
@@ -86,11 +102,12 @@ namespace ComplexPrototypeSystem.Service.Client
 
         private void OnDataReceived(object sender, DataReceivedEventArgs e)
         {
-            string message = Encoding.UTF8.GetString(e.Data.Array, 0, e.Data.Count);
-            logger.LogInformation($"[{e.IpPort}] {message}");
+            Opcode opcode = (Opcode)e.Data.Array[0];
+            int sizeOffset = (1 + sizeof(int));
+            int size = BitConverter.ToInt32(e.Data.Array[1..sizeOffset]);
+            int dataOffset = sizeOffset + size;
 
-            queue.Recv.Add(message);
-            controller.ReceiveMessage();
+            controller.HandleOpcode(opcode, size, e.Data.Array[sizeOffset..dataOffset]);
         }
 
         private async Task Connect(CancellationToken stoppingToken)
@@ -110,19 +127,5 @@ namespace ComplexPrototypeSystem.Service.Client
             }
         }
 
-        private async Task Send(string message, CancellationToken stoppingToken)
-        {
-            try
-            {
-                if (client.IsConnected)
-                {
-                    await client.SendAsync(message, stoppingToken);
-                }
-            }
-            catch (Exception ex)
-            {
-                logger.LogError(ex, ex.Message);
-            }
-        }
     }
 }

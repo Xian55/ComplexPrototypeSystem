@@ -1,8 +1,11 @@
 using System;
+using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
+
 using ComplexPrototypeSystem.Service.DAO;
 using ComplexPrototypeSystem.Service.Data;
+using ComplexPrototypeSystem.Shared;
 
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -31,6 +34,9 @@ namespace ComplexPrototypeSystem.Service.Worker
         {
             logger.LogInformation("Started");
 
+            using MemoryStream ms = new MemoryStream();
+            using var bw = new BinaryWriter(ms);
+
             while (!stoppingToken.IsCancellationRequested)
             {
                 if (cpuInfo.Poll(out int tempF, out int usage))
@@ -38,7 +44,17 @@ namespace ComplexPrototypeSystem.Service.Worker
                     var now = DateTime.UtcNow;
 
                     logger.LogInformation($"{now} - Temp:{tempF} Usage:{usage}");
-                    queue.Send.Add($"Id:{configDAO.Config.Id},Time:{now},TempF:{tempF},Usage:{usage}");
+
+                    bw.Write((byte)Opcode.Report);
+                    bw.Write(sizeof(long) + sizeof(int) + sizeof(int));
+
+                    bw.Write(now.ToBinary());
+                    bw.Write(tempF);
+                    bw.Write(usage);
+
+                    queue.Send.Add(ms.ToArray());
+                    ms.Position = 0;
+                    ms.SetLength(0);
                 }
 
                 await Task.Delay(configDAO.Config.Interval, stoppingToken);

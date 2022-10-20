@@ -4,7 +4,7 @@ namespace ComplexPrototypeSystem.Service.Data
 {
     public sealed class MessageQueue
     {
-        public BlockingCollection<string> Send { get; } = new BlockingCollection<string>();
-        public BlockingCollection<string> Recv { get; } = new BlockingCollection<string>();
+        public BlockingCollection<byte[]> Send { get; } = new BlockingCollection<byte[]>();
+        public BlockingCollection<byte[]> PrioritySend { get; } = new BlockingCollection<byte[]>();
     }
 }

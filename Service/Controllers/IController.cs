@@ -1,9 +1,10 @@
-﻿using System.Diagnostics;
+﻿using System;
+using ComplexPrototypeSystem.Shared;
 
 namespace ComplexPrototypeSystem.Service.Controllers
 {
     public interface IController
     {
-        void ReceiveMessage();
+        void HandleOpcode(Opcode opCode, int size, ArraySegment<byte> payload);
     }
 }
