@@ -1,6 +1,5 @@
 using ComplexPrototypeSystem.Shared.Converters;
 using ComplexPrototypeSystem.Server.Data;
-using ComplexPrototypeSystem.Server.Hubs;
 using ComplexPrototypeSystem.Server.Models;
 using ComplexPrototypeSystem.Server.Services;
 
@@ -35,8 +34,8 @@ namespace ComplexPrototypeSystem.Server
 
             services.AddSwaggerGen();
 
-            //services.AddSignalR();
-            //services.AddHostedService<SensorSignalRServiceWorker>();
+            services.AddSingleton<MessageQueue>();
+
             services.AddHostedService<TCPServerWorker>();
 
             services.AddDbContext<ApplicationDbContext>(options =>
