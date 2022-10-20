@@ -30,7 +30,8 @@ namespace ComplexPrototypeSystem.Server.Services
         private readonly string address;
         private readonly int port;
 
-        private readonly Dictionary<string, Guid> connectionToGuid = new Dictionary<string, Guid>();
+        private readonly Dictionary<string, Guid> IpAddressToGuid = new Dictionary<string, Guid>();
+        private readonly Dictionary<Guid, string> GuidToIpAddress = new Dictionary<Guid, string>();
 
         private readonly Dictionary<Opcode, Action<string, int, ArraySegment<byte>>> receiveActions;
 
@@ -84,12 +85,10 @@ namespace ComplexPrototypeSystem.Server.Services
                 while (queue.SendInterval.TryTake(out var data) &&
                     !stoppingToken.IsCancellationRequested)
                 {
-                    // TODO: better way to map sensor Guid -> ipadress:port
                     Guid guid = Guid.Parse(data.Key);
-                    var ipPort = connectionToGuid.FirstOrDefault(x => x.Value == guid).Key;
-                    if (!string.IsNullOrEmpty(ipPort))
+                    if (GuidToIpAddress.TryGetValue(guid, out string ipAddressPort))
                     {
-                        server.Send(ipPort, data.Value);
+                        server.Send(ipAddressPort, data.Value);
                     }
                 }
 
@@ -119,7 +118,11 @@ namespace ComplexPrototypeSystem.Server.Services
         private void ClientDisconnected(object sender, ConnectionEventArgs e)
         {
             logger.LogInformation($"Client Disconnected {e.IpPort}");
-            connectionToGuid.Remove(e.IpPort);
+
+            if (IpAddressToGuid.TryGetValue(e.IpPort, out Guid guid))
+                GuidToIpAddress.Remove(guid);
+
+            IpAddressToGuid.Remove(e.IpPort);
         }
 
         private void DataReceived(object sender, DataReceivedEventArgs e)
@@ -164,7 +167,8 @@ namespace ComplexPrototypeSystem.Server.Services
                     {
                         logger.LogInformation($"New Sensor Added {sensorSettings.Guid} - {sensorSettings.IPAddress}");
 
-                        connectionToGuid[client] = sensorSettings.Guid;
+                        IpAddressToGuid[client] = sensorSettings.Guid;
+                        GuidToIpAddress[sensorSettings.Guid] = client;
 
                         using MemoryStream ms = new MemoryStream();
                         using var bw = new BinaryWriter(ms);
@@ -186,7 +190,8 @@ namespace ComplexPrototypeSystem.Server.Services
                 var dbSensor = settingsContext.SensorSettings.FirstOrDefault(x => x.Guid == id);
                 if (dbSensor != null)
                 {
-                    connectionToGuid[client] = id;
+                    IpAddressToGuid[client] = id;
+                    GuidToIpAddress[id] = client;
 
                     using MemoryStream ms = new MemoryStream();
                     using var bw = new BinaryWriter(ms);
@@ -208,7 +213,7 @@ namespace ComplexPrototypeSystem.Server.Services
             int tempF = BitConverter.ToInt32(payload.Slice(sizeof(long)));
             int usage = BitConverter.ToInt32(payload.Slice(sizeof(long) + sizeof(int)));
 
-            Guid id = connectionToGuid[client];
+            Guid id = IpAddressToGuid[client];
 
             reportsContext.SensorReports.Add(new SensorReport()
             {
