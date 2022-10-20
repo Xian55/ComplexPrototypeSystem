@@ -9,7 +9,7 @@ namespace ComplexPrototypeSystem.Service.Data
 
     public sealed class Config
     {
-        public Guid Id { get; set; } = Guid.NewGuid();
+        public Guid Id { get; set; } = Guid.Empty;
 
         public int Interval { get; set; } = 5000;
     }

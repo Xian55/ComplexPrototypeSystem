@@ -51,5 +51,11 @@ namespace ComplexPrototypeSystem.Service.DAO
             Config.Interval = interval;
             Save();
         }
+
+        public void SetId(Guid id)
+        {
+            Config.Id = id;
+            Save();
+        }
     }
 }
