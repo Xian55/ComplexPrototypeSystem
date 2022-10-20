@@ -27,6 +27,9 @@
                     <button class="btn btn-primary" @onclick="() => ShowSensor(sensor.Guid)">
                         <i class="oi oi-pencil"></i>
                     </button>
+                    <button class="btn btn-primary" @onclick="() => ShowSensorReports(sensor.Guid)">
+                        <i class="oi oi-book"></i>
+                    </button>
                 </td>
             </tr>
         }
@@ -57,5 +60,10 @@
     protected void CreateNewSensor()
     {
         navigationManager.NavigateTo($"sensor");
+    }
+
+    protected void ShowSensorReports(Guid guid)
+    {
+        navigationManager.NavigateTo($"sensorreports/{guid}");
     }
 }

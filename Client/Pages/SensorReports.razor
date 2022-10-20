@@ -1,0 +1,63 @@
+﻿@page "/sensorreports/{Id:guid}"
+@using Microsoft.AspNetCore.Components.WebAssembly.Authentication
+@inject ISensorReportsService SensorReportsService
+@inject NavigationManager navigationManager
+
+<h3>
+    <button class="btn btn-primary" @onclick="async () => await SensorReportsService.Get(Id)">
+        <i class="oi oi-reload"></i>
+    </button>
+    @Id Reports
+</h3>
+
+<table class="table">
+    <thead>
+        <tr>
+            <th>Time</th>
+            <th>TempF</th>
+            <th>TempC</th>
+            <th>Usage</th>
+            <th><i>Actions</i></th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var sensor in SensorReportsService.SensorReports)
+        {
+            <tr>
+                <td>@sensor.DateTime</td>
+                <td>@sensor.TemperatureC</td>
+                <td>@sensor.TemperatureF</td>
+                <td>@sensor.Usage</td>
+                <td>
+                    <button class="btn btn-danger" @onclick="() => DeleteReport(sensor.ReportId)">
+                        <i class="oi oi-trash"></i>
+                    </button>
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>
+
+@code {
+
+    [Parameter]
+    public Guid Id { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            await SensorReportsService.Get(Id);
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            exception.Redirect();
+        }
+    }
+
+    protected async Task DeleteReport(Guid guid)
+    {
+        await SensorReportsService.Delete(guid);
+        await SensorReportsService.Get(Id);
+    }
+}
