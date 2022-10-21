@@ -201,7 +201,7 @@ namespace ComplexPrototypeSystem.Server.Services
             }
             else
             {
-                logger.LogInformation($"[{client}]: {id}");
+                logger.LogInformation($"[{client}]: Identified as {id} - Sending Interval");
 
                 var dbSensor = settingsContext.SensorSettings.FirstOrDefault(x => x.Guid == id);
                 if (dbSensor != null)
