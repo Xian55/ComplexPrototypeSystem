@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections.Concurrent;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
@@ -108,11 +107,19 @@ namespace ComplexPrototypeSystem.Service.Client
         private void OnDataReceived(object sender, DataReceivedEventArgs e)
         {
             Opcode opcode = (Opcode)e.Data.Array[0];
-            int sizeOffset = (1 + sizeof(int));
-            int size = BitConverter.ToInt32(e.Data.Array[1..sizeOffset]);
-            int dataOffset = sizeOffset + size;
 
-            controller.HandleOpcode(opcode, size, e.Data.Array[sizeOffset..dataOffset]);
+            if (OpCode_Extension.IsDefined(opcode))
+            {
+                int sizeOffset = (1 + sizeof(int));
+                int size = BitConverter.ToInt32(e.Data.Array[1..sizeOffset]);
+                int dataOffset = sizeOffset + size;
+
+                controller.HandleOpcode(opcode, size, e.Data.Array[sizeOffset..dataOffset]);
+            }
+            else
+            {
+                logger.LogWarning($"Unknown {nameof(Opcode)} {opcode}");
+            }
         }
 
         private async Task Connect(CancellationToken stoppingToken)
@@ -122,10 +129,10 @@ namespace ComplexPrototypeSystem.Service.Client
                 if (!client.IsConnected)
                     client.ConnectWithRetries(10000);
             }
-            catch (Exception e)
+            catch (Exception ex)
             {
                 int nextReconnectAttempt = random.Next(30_000, 60_000);
-                logger.LogError(e, e.Message + $"\nNext reconnect attempt after {nextReconnectAttempt}ms");
+                logger.LogError(ex, ex.Message + $"\nNext reconnect attempt after {nextReconnectAttempt}ms");
 
                 await Task.Delay(nextReconnectAttempt, stoppingToken);
             }

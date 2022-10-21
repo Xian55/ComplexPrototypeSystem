@@ -4,7 +4,7 @@ namespace ComplexPrototypeSystem.Service.Data
 {
     public static class ConfigMeta
     {
-        public const string FileName = "config.json";
+        public const string FILE_NAME = "config.json";
     }
 
     public sealed class Config

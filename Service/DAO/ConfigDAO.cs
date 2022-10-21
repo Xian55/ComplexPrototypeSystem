@@ -15,35 +15,47 @@ namespace ComplexPrototypeSystem.Service.DAO
 
         public Config Config { get; }
 
+        private string BaseDir => AppDomain.CurrentDomain.BaseDirectory;
+
         public ConfigDAO(ILogger<ConfigDAO> logger)
         {
             this.logger = logger;
 
-            string fileName = Path.Join(AppDomain.CurrentDomain.BaseDirectory, ConfigMeta.FileName);
+            string fileName = Path.Join(BaseDir, ConfigMeta.FILE_NAME);
 
-            if (!File.Exists(fileName))
-            {
-                Config = new Config();
-
-                Save();
-
-                logger.LogInformation($"Config created {fileName}");
-            }
-            else
+            try
             {
                 string json = File.ReadAllText(fileName);
                 Config = JsonSerializer.Deserialize<Config>(json);
+                logger.LogInformation($"Config loaded id: {Config.Id} | interval: {Config.Interval}ms");
             }
-
-            logger.LogInformation($"Config loaded id: {Config.Id} | interval: {Config.Interval}ms");
+            catch (FileNotFoundException)
+            {
+                Config = new Config();
+                Save();
+                logger.LogInformation($"Config created {fileName}");
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, ex.Message);
+                throw;
+            }
         }
 
         public void Save()
         {
-            string fileName = Path.Join(AppDomain.CurrentDomain.BaseDirectory, ConfigMeta.FileName);
-            string json = JsonSerializer.Serialize(Config);
-            File.WriteAllText(fileName, json);
-            logger.LogInformation("Config saved");
+            try
+            {
+                string fileName = Path.Join(BaseDir, ConfigMeta.FILE_NAME);
+                string json = JsonSerializer.Serialize(Config);
+                File.WriteAllText(fileName, json);
+                logger.LogInformation("Config saved");
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, ex.Message);
+                throw;
+            }
         }
 
         public void SetInterval(int interval)

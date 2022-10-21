@@ -34,7 +34,7 @@ namespace ComplexPrototypeSystem.Service.Worker
         {
             logger.LogInformation("Started");
 
-            using MemoryStream ms = new MemoryStream();
+            using var ms = new MemoryStream();
             using var bw = new BinaryWriter(ms);
 
             while (!stoppingToken.IsCancellationRequested)

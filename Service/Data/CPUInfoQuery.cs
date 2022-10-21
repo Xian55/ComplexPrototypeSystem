@@ -34,11 +34,11 @@ namespace ComplexPrototypeSystem.Service.Data
                 usage = (int)perfCpuCount.NextValue();
                 return true;
             }
-            catch (Exception e)
+            catch (Exception ex)
             {
                 tempF = 0;
                 usage = 0;
-                logger.LogError($"Unable to collect CPU temperature or Usage\n{e.Message}");
+                logger.LogError(ex, ex.Message);
             }
 
             return false;
