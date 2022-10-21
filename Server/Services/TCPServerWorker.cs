@@ -64,8 +64,8 @@ namespace ComplexPrototypeSystem.Server.Services
             receiveHandlers =
             new Dictionary<Opcode, Action<string, int, ArraySegment<byte>>>()
             {
-                { Opcode.Identify, Identify },
-                { Opcode.Report, Report }
+                { Opcode.Identify, HandleIdentify },
+                { Opcode.Report, HandleReport }
             };
         }
 
@@ -150,7 +150,7 @@ namespace ComplexPrototypeSystem.Server.Services
             }
         }
 
-        public void Identify(string client, int size, ArraySegment<byte> payload)
+        public void HandleIdentify(string client, int size, ArraySegment<byte> payload)
         {
             Guid id;
             try
@@ -223,7 +223,7 @@ namespace ComplexPrototypeSystem.Server.Services
             }
         }
 
-        public void Report(string client, int size, ArraySegment<byte> payload)
+        public void HandleReport(string client, int size, ArraySegment<byte> payload)
         {
             DateTime time;
             int tempF;
