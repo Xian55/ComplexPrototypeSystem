@@ -103,10 +103,10 @@ namespace ComplexPrototypeSystem.Server.Services
 
         private void DisconnectClients()
         {
-            foreach (var client in server.GetClients())
+            foreach (var ipPort in server.GetClients())
             {
-                server.DisconnectClient(client);
-                logger.LogInformation($"[{client}]: Disconnect by Server");
+                server.DisconnectClient(ipPort);
+                logger.LogInformation($"[{ipPort}]: Disconnect by Server");
             }
         }
 
@@ -150,12 +150,12 @@ namespace ComplexPrototypeSystem.Server.Services
             }
         }
 
-        public void HandleIdentify(string client, int size, ArraySegment<byte> payload)
+        public void HandleIdentify(string ipPort, int size, ArraySegment<byte> payload)
         {
-            Guid id;
+            Guid sensorId;
             try
             {
-                id = new Guid(payload);
+                sensorId = new Guid(payload);
             }
             catch (Exception ex)
             {
@@ -163,28 +163,28 @@ namespace ComplexPrototypeSystem.Server.Services
                 return;
             }
 
-            if (id == Guid.Empty)
-            {
-                logger.LogInformation($"[{client}]: Requested new GUID");
+            var ipAddressSpan = ipPort.AsSpan()[..(ipPort.IndexOf(':') + 1)];
+            IPAddress newIp = IPAddress.Parse(ipAddressSpan);
 
-                var ipAddressSpan = client.AsSpan()[..(client.IndexOf(':') + 1)];
-                IPAddress newIp = IPAddress.Parse(ipAddressSpan);
+            if (sensorId == Guid.Empty)
+            {
+                logger.LogInformation($"[{ipPort}]: Requested new GUID");
 
                 Shared.SensorSettings sensorSettings = new Shared.SensorSettings()
                 {
                     IPAddress = newIp,
                 };
 
-                if (!settingsContext.SensorSettings.Any(x => x.Guid == id))
+                if (!settingsContext.SensorSettings.Any(x => x.Guid == sensorId))
                 {
                     settingsContext.SensorSettings.Add(sensorSettings);
                     int change = settingsContext.SaveChanges();
                     if (change > 0)
                     {
-                        logger.LogInformation($"[{client}]: New Sensor Added {sensorSettings.Guid} - {sensorSettings.IPAddress}");
+                        logger.LogInformation($"[{ipPort}]: New Sensor Added {sensorSettings.Guid} - {sensorSettings.IPAddress}");
 
-                        IpAddressToGuid[client] = sensorSettings.Guid;
-                        GuidToIpAddress[sensorSettings.Guid] = client;
+                        IpAddressToGuid[ipPort] = sensorSettings.Guid;
+                        GuidToIpAddress[sensorSettings.Guid] = ipPort;
 
                         using var ms = new MemoryStream();
                         using var bw = new BinaryWriter(ms);
@@ -195,19 +195,28 @@ namespace ComplexPrototypeSystem.Server.Services
                         bw.Write(data.Length);
                         bw.Write(data);
 
-                        queue.Send.Add(new KeyValuePair<string, byte[]>(client, ms.ToArray()));
+                        queue.Send.Add(new KeyValuePair<string, byte[]>(ipPort, ms.ToArray()));
                     }
                 }
             }
             else
             {
-                logger.LogInformation($"[{client}]: Identified as {id} - Sending Interval");
+                logger.LogInformation($"[{ipPort}]: Identified as {sensorId} - Sending Interval");
 
-                var dbSensor = settingsContext.SensorSettings.FirstOrDefault(x => x.Guid == id);
+                var dbSensor = settingsContext.SensorSettings.FirstOrDefault(x => x.Guid == sensorId);
                 if (dbSensor != null)
                 {
-                    IpAddressToGuid[client] = id;
-                    GuidToIpAddress[id] = client;
+                    IpAddressToGuid[ipPort] = sensorId;
+                    GuidToIpAddress[sensorId] = ipPort;
+
+                    if (dbSensor.IPAddress != newIp)
+                    {
+                        logger.LogInformation($"[{ipPort}]: Joined from a new IP Address. From {dbSensor.IPAddress} to {newIp}");
+
+                        dbSensor.IPAddress = newIp;
+
+                        settingsContext.SaveChanges();
+                    }
 
                     using var ms = new MemoryStream();
                     using var bw = new BinaryWriter(ms);
@@ -218,12 +227,12 @@ namespace ComplexPrototypeSystem.Server.Services
                     bw.Write(sizeInterval);
                     bw.Write(dbSensor.Interval);
 
-                    queue.Send.Add(new KeyValuePair<string, byte[]>(client, ms.ToArray()));
+                    queue.Send.Add(new KeyValuePair<string, byte[]>(ipPort, ms.ToArray()));
                 }
             }
         }
 
-        public void HandleReport(string client, int size, ArraySegment<byte> payload)
+        public void HandleReport(string IpPort, int size, ArraySegment<byte> payload)
         {
             DateTime time;
             int tempF;
@@ -240,7 +249,7 @@ namespace ComplexPrototypeSystem.Server.Services
                 return;
             }
 
-            if (IpAddressToGuid.TryGetValue(client, out Guid id))
+            if (IpAddressToGuid.TryGetValue(IpPort, out Guid id))
             {
                 reportsContext.SensorReports.Add(new SensorReport()
                 {
@@ -253,16 +262,16 @@ namespace ComplexPrototypeSystem.Server.Services
                 int change = reportsContext.SaveChanges();
                 if (change > 0)
                 {
-                    logger.LogInformation($"[{client}]: Report added: {id} - {time} - {tempF} - {usage}");
+                    logger.LogInformation($"[{IpPort}]: Report added: {id} - {time} - {tempF} - {usage}");
                 }
                 else
                 {
-                    logger.LogWarning($"[{client}]: Report not added: {id} - {time} - {tempF} - {usage}");
+                    logger.LogWarning($"[{IpPort}]: Report not added: {id} - {time} - {tempF} - {usage}");
                 }
             }
             else
             {
-                logger.LogWarning($"[{client}]: Unable to match {client} -> {nameof(SensorReport.SensorGuid)}");
+                logger.LogWarning($"[{IpPort}]: Unable to match {IpPort} -> {nameof(SensorReport.SensorGuid)}");
             }
         }
     }
