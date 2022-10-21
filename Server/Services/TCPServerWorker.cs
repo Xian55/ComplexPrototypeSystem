@@ -33,7 +33,7 @@ namespace ComplexPrototypeSystem.Server.Services
         private readonly Dictionary<string, Guid> IpAddressToGuid = new Dictionary<string, Guid>();
         private readonly Dictionary<Guid, string> GuidToIpAddress = new Dictionary<Guid, string>();
 
-        private readonly Dictionary<Opcode, Action<string, int, ArraySegment<byte>>> receiveActions;
+        private readonly Dictionary<Opcode, Action<string, int, ArraySegment<byte>>> receiveHandlers;
 
         public TCPServerWorker(
             ILogger<TCPServerWorker> logger,
@@ -61,7 +61,7 @@ namespace ComplexPrototypeSystem.Server.Services
             server.Events.ClientDisconnected += ClientDisconnected;
             server.Events.DataReceived += DataReceived;
 
-            receiveActions =
+            receiveHandlers =
             new Dictionary<Opcode, Action<string, int, ArraySegment<byte>>>()
             {
                 { Opcode.Identify, Identify },
@@ -86,7 +86,7 @@ namespace ComplexPrototypeSystem.Server.Services
                     !stoppingToken.IsCancellationRequested)
                 {
                     Guid guid = Guid.Parse(data.Key);
-                    if (GuidToIpAddress.TryGetValue(guid, out string ipAddressPort))
+                    if (GuidToIpAddress.TryGetValue(guid, out var ipAddressPort))
                     {
                         server.Send(ipAddressPort, data.Value);
                     }
@@ -106,18 +106,18 @@ namespace ComplexPrototypeSystem.Server.Services
             foreach (var client in server.GetClients())
             {
                 server.DisconnectClient(client);
-                logger.LogInformation($"DisconnectedClient({client})");
+                logger.LogInformation($"[{client}]: Disconnect by Server");
             }
         }
 
         private void ClientConnected(object sender, ConnectionEventArgs e)
         {
-            logger.LogInformation($"Client Connected {e.IpPort}");
+            logger.LogInformation($"[{e.IpPort}]: Connected");
         }
 
         private void ClientDisconnected(object sender, ConnectionEventArgs e)
         {
-            logger.LogInformation($"Client Disconnected {e.IpPort}");
+            logger.LogInformation($"[{e.IpPort}]: Disconnected");
 
             if (IpAddressToGuid.TryGetValue(e.IpPort, out Guid guid))
                 GuidToIpAddress.Remove(guid);
@@ -128,49 +128,65 @@ namespace ComplexPrototypeSystem.Server.Services
         private void DataReceived(object sender, DataReceivedEventArgs e)
         {
             Opcode opcode = (Opcode)e.Data.Array[0];
-            int sizeOffset = (1 + sizeof(int));
-            int size = BitConverter.ToInt32(e.Data.Array[1..sizeOffset]);
-            int dataOffset = sizeOffset + size;
 
-            if (receiveActions.TryGetValue(opcode, out var action))
+            if (OpCode_Extension.IsDefined(opcode))
             {
-                action(e.IpPort, size, e.Data.Array[sizeOffset..dataOffset]);
+                int sizeOffset = (1 + sizeof(int));
+                int size = BitConverter.ToInt32(e.Data.Array[1..sizeOffset]);
+                int dataOffset = sizeOffset + size;
+
+                if (receiveHandlers.TryGetValue(opcode, out var handler))
+                {
+                    handler(e.IpPort, size, e.Data.Array[sizeOffset..dataOffset]);
+                }
+                else
+                {
+                    logger.LogWarning($"No handler for {nameof(Opcode)} {opcode}");
+                }
             }
             else
             {
-                logger.LogError("Unknown Opcode!");
+                logger.LogError($"Unknown {nameof(Opcode)} {e.Data.Array[0]}");
             }
         }
 
         public void Identify(string client, int size, ArraySegment<byte> payload)
         {
-            Guid id = new Guid(payload);
+            Guid id;
+            try
+            {
+                id = new Guid(payload);
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, ex.Message);
+                return;
+            }
 
             if (id == Guid.Empty)
             {
                 logger.LogInformation($"[{client}]: Requested new GUID");
 
-                var ipAddressOnlySpan = client.AsSpan()[..(client.IndexOf(':') + 1)];
-                IPAddress newIp = IPAddress.Parse(ipAddressOnlySpan);
+                var ipAddressSpan = client.AsSpan()[..(client.IndexOf(':') + 1)];
+                IPAddress newIp = IPAddress.Parse(ipAddressSpan);
 
                 Shared.SensorSettings sensorSettings = new Shared.SensorSettings()
                 {
                     IPAddress = newIp,
                 };
 
-                var dbSensor = settingsContext.SensorSettings.FirstOrDefault(x => x.Guid == id);
-                if (dbSensor == null)
+                if (!settingsContext.SensorSettings.Any(x => x.Guid == id))
                 {
                     settingsContext.SensorSettings.Add(sensorSettings);
                     int change = settingsContext.SaveChanges();
                     if (change > 0)
                     {
-                        logger.LogInformation($"New Sensor Added {sensorSettings.Guid} - {sensorSettings.IPAddress}");
+                        logger.LogInformation($"[{client}]: New Sensor Added {sensorSettings.Guid} - {sensorSettings.IPAddress}");
 
                         IpAddressToGuid[client] = sensorSettings.Guid;
                         GuidToIpAddress[sensorSettings.Guid] = client;
 
-                        using MemoryStream ms = new MemoryStream();
+                        using var ms = new MemoryStream();
                         using var bw = new BinaryWriter(ms);
 
                         bw.Write((byte)Opcode.Identify);
@@ -193,7 +209,7 @@ namespace ComplexPrototypeSystem.Server.Services
                     IpAddressToGuid[client] = id;
                     GuidToIpAddress[id] = client;
 
-                    using MemoryStream ms = new MemoryStream();
+                    using var ms = new MemoryStream();
                     using var bw = new BinaryWriter(ms);
 
                     bw.Write((byte)Opcode.SetInterval);
@@ -209,28 +225,44 @@ namespace ComplexPrototypeSystem.Server.Services
 
         public void Report(string client, int size, ArraySegment<byte> payload)
         {
-            DateTime time = DateTime.FromBinary(BitConverter.ToInt64(payload));
-            int tempF = BitConverter.ToInt32(payload.Slice(sizeof(long)));
-            int usage = BitConverter.ToInt32(payload.Slice(sizeof(long) + sizeof(int)));
-
-            Guid id = IpAddressToGuid[client];
-
-            reportsContext.SensorReports.Add(new SensorReport()
+            DateTime time;
+            int tempF;
+            int usage;
+            try
             {
-                SensorGuid = id,
-                DateTime = time,
-                TemperatureF = tempF,
-                Usage = usage
-            });
-
-            int change = reportsContext.SaveChanges();
-            if (change > 0)
+                time = DateTime.FromBinary(BitConverter.ToInt64(payload));
+                tempF = BitConverter.ToInt32(payload.Slice(sizeof(long)));
+                usage = BitConverter.ToInt32(payload.Slice(sizeof(long) + sizeof(int)));
+            }
+            catch (Exception ex)
             {
-                logger.LogInformation($"Report added: {id} - {time} - {tempF} - {usage}");
+                logger.LogError(ex, ex.Message);
+                return;
+            }
+
+            if (IpAddressToGuid.TryGetValue(client, out Guid id))
+            {
+                reportsContext.SensorReports.Add(new SensorReport()
+                {
+                    SensorGuid = id,
+                    DateTime = time,
+                    TemperatureF = tempF,
+                    Usage = usage
+                });
+
+                int change = reportsContext.SaveChanges();
+                if (change > 0)
+                {
+                    logger.LogInformation($"[{client}]: Report added: {id} - {time} - {tempF} - {usage}");
+                }
+                else
+                {
+                    logger.LogWarning($"[{client}]: Report not added: {id} - {time} - {tempF} - {usage}");
+                }
             }
             else
             {
-                logger.LogWarning($"Report not added: {id} - {time} - {tempF} - {usage}");
+                logger.LogWarning($"[{client}]: Unable to match {client} -> {nameof(SensorReport.SensorGuid)}");
             }
         }
     }

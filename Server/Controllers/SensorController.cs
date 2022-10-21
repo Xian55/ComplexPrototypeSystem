@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Threading.Tasks;
+using System.Runtime.InteropServices;
 
 using ComplexPrototypeSystem.Server.Data;
 using ComplexPrototypeSystem.Shared;
@@ -64,18 +65,19 @@ namespace ComplexPrototypeSystem.Server.Controllers
             if (dbSensor == null)
                 return NotFound();
 
-            // TODO: move this to elsewhere
             if (dbSensor.Interval != sensor.Interval)
             {
-                using MemoryStream ms = new MemoryStream();
+                using var ms = new MemoryStream();
                 using var bw = new BinaryWriter(ms);
 
                 bw.Write((byte)Opcode.SetInterval);
-                int size = System.Runtime.InteropServices.Marshal.SizeOf(sensor.Interval);
+                int size = Marshal.SizeOf(sensor.Interval);
                 bw.Write(size);
                 bw.Write(sensor.Interval);
 
-                queue.SendInterval.Add(new KeyValuePair<string, byte[]>(dbSensor.Guid.ToString(), ms.ToArray()));
+                queue.SendInterval
+                    .Add(new KeyValuePair<string, byte[]>
+                    (dbSensor.Guid.ToString(), ms.ToArray()));
             }
 
             dbSensor.Name = sensor.Name;

@@ -8,7 +8,8 @@ namespace ComplexPrototypeSystem.Server.Data
     {
         public DbSet<SensorReport> SensorReports { get; set; }
 
-        public SensorReportDbContext(DbContextOptions<SensorReportDbContext> options) : base(options)
+        public SensorReportDbContext(DbContextOptions<SensorReportDbContext> options)
+            : base(options)
         {
 
         }
