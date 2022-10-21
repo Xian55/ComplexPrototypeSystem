@@ -1,5 +1,5 @@
 ﻿@page "/sensorreports/{Id:guid}"
-@using Microsoft.AspNetCore.Components.WebAssembly.Authentication
+
 @inject ISensorReportsService SensorReportsService
 @inject NavigationManager navigationManager
 
@@ -14,8 +14,8 @@
     <thead>
         <tr>
             <th>Time</th>
-            <th>TempF</th>
             <th>TempC</th>
+            <th>TempF</th>
             <th>Usage</th>
             <th><i>Actions</i></th>
         </tr>
