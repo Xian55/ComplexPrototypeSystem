@@ -153,18 +153,18 @@ namespace ComplexPrototypeSystem.Server.Services
         public void HandleIdentify(string ipPort, int size, ArraySegment<byte> payload)
         {
             Guid sensorId;
+            IPAddress newIp;
             try
             {
                 sensorId = new Guid(payload);
+                var ipAddressSpan = ipPort.AsSpan()[..(ipPort.IndexOf(':'))];
+                newIp = IPAddress.Parse(ipAddressSpan);
             }
             catch (Exception ex)
             {
                 logger.LogError(ex, ex.Message);
                 return;
             }
-
-            var ipAddressSpan = ipPort.AsSpan()[..(ipPort.IndexOf(':') + 1)];
-            IPAddress newIp = IPAddress.Parse(ipAddressSpan);
 
             if (sensorId == Guid.Empty)
             {
@@ -209,7 +209,7 @@ namespace ComplexPrototypeSystem.Server.Services
                     IpAddressToGuid[ipPort] = sensorId;
                     GuidToIpAddress[sensorId] = ipPort;
 
-                    if (dbSensor.IPAddress != newIp)
+                    if (!dbSensor.IPAddress.Equals(newIp))
                     {
                         logger.LogInformation($"[{ipPort}]: Joined from a new IP Address. From {dbSensor.IPAddress} to {newIp}");
 
