@@ -2,7 +2,7 @@
 {
     public enum Opcode : byte
     {
-        Identify,
+        Identify = 1,
         SetInterval,
         Report
     }
