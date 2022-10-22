@@ -15,6 +15,8 @@ namespace ComplexPrototypeSystem.Service.Controllers
 
         private readonly Dictionary<Opcode, Action<int, ArraySegment<byte>>> handlers;
 
+        public event Action OnAuthorized;
+
         public Controller(ILogger<Controller> logger, ConfigDAO configDAO)
         {
             this.logger = logger;
@@ -44,6 +46,8 @@ namespace ComplexPrototypeSystem.Service.Controllers
                 Guid id = new Guid(payload);
                 configDAO.SetId(id);
                 logger.LogInformation($"Registered as {id}");
+
+                OnAuthorized?.Invoke();
             }
             catch (Exception ex)
             {
@@ -63,6 +67,8 @@ namespace ComplexPrototypeSystem.Service.Controllers
                     logger.LogInformation($"Interval updated to {newInterval}ms from {oldInterval}ms");
                     configDAO.SetInterval(newInterval);
                 }
+
+                OnAuthorized?.Invoke();
             }
             catch (Exception ex)
             {

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
@@ -29,6 +29,8 @@ namespace ComplexPrototypeSystem.Service.Client
         private readonly SimpleTcpClient client;
         private readonly Random random = new Random();
 
+        private bool authorized;
+
         public TCPClient(ILogger<TCPClient> logger,
             ConfigDAO configDAO,
             MessageQueue queue,
@@ -47,6 +49,8 @@ namespace ComplexPrototypeSystem.Service.Client
             client.Events.Connected += OnConnected;
             client.Events.Disconnected += OnDisconnected;
             client.Events.DataReceived += OnDataReceived;
+
+            controller.OnAuthorized += Controller_OnAuthorized;
         }
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -101,6 +105,7 @@ namespace ComplexPrototypeSystem.Service.Client
 
         private void OnDisconnected(object sender, ConnectionEventArgs e)
         {
+            authorized = false;
             logger.LogInformation("Disconnected");
         }
 
@@ -138,5 +143,9 @@ namespace ComplexPrototypeSystem.Service.Client
             }
         }
 
+        private void Controller_OnAuthorized()
+        {
+            authorized = true;
+        }
     }
 }
