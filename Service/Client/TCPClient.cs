@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
@@ -71,10 +71,10 @@ namespace ComplexPrototypeSystem.Service.Client
 
                 if (client.IsConnected)
                 {
-                    while (queue.PrioritySend.TryTake(out byte[] prioPayload))
+                    if (queue.PrioritySend.TryTake(out byte[] prioPayload))
                         await client.SendAsync(prioPayload, stoppingToken);
 
-                    while (queue.Send.TryTake(out byte[] normalPayload))
+                    if (authorized && queue.Send.TryTake(out byte[] normalPayload))
                         await client.SendAsync(normalPayload, stoppingToken);
                 }
 
