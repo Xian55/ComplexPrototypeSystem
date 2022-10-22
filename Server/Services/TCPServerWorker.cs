@@ -157,7 +157,7 @@ namespace ComplexPrototypeSystem.Server.Services
             try
             {
                 sensorId = new Guid(payload);
-                var ipAddressSpan = ipPort.AsSpan()[..(ipPort.IndexOf(':'))];
+                var ipAddressSpan = ipPort.AsSpan()[..(ipPort.LastIndexOf(':'))];
                 newIp = IPAddress.Parse(ipAddressSpan);
             }
             catch (Exception ex)
