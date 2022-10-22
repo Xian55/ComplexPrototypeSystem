@@ -43,7 +43,7 @@ namespace ComplexPrototypeSystem.Service.Worker
                 {
                     var now = DateTime.UtcNow;
 
-                    logger.LogInformation($"{now} - Temp:{tempF} Usage:{usage}");
+                    logger.LogInformation($"Temp:{tempF} Usage:{usage}");
 
                     bw.Write((byte)Opcode.Report);
                     bw.Write(sizeof(long) + sizeof(int) + sizeof(int));
