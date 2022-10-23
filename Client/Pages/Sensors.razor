@@ -1,6 +1,7 @@
 ﻿@page "/sensors"
 
-@inject ISensorService SensorService
+@inject ISensorService sensorService
+@inject ISensorOnlineService sensorOnlineService
 @inject NavigationManager navigationManager
 
 <h3>Sensors</h3>
@@ -8,6 +9,7 @@
 <table class="table">
     <thead>
         <tr>
+            <th>Online</th>
             <th>GUID</th>
             <th>Name</th>
             <th>Interval</th>
@@ -16,9 +18,12 @@
         </tr>
     </thead>
     <tbody>
-        @foreach(var sensor in SensorService.SensorSettings)
+        @foreach (var sensor in sensorService.SensorSettings)
         {
             <tr>
+                <td style="text-align: center">
+                    @(Status(sensor))
+                </td>
                 <td>@sensor.Guid</td>
                 <td>@sensor.Name</td>
                 <td>@sensor.Interval</td>
@@ -40,11 +45,14 @@
 </button>
 
 @code {
+    private IEnumerable<Guid> onlineSensors = Enumerable.Empty<Guid>();
+
     protected override async Task OnInitializedAsync()
     {
         try
         {
-            await SensorService.GetAll();
+            await sensorService.GetAll();
+            onlineSensors = await sensorOnlineService.OnlineSensors();
         }
         catch (AccessTokenNotAvailableException exception)
         {
@@ -65,5 +73,12 @@
     protected void ShowSensorReports(Guid guid)
     {
         navigationManager.NavigateTo($"sensorreports/{guid}");
+    }
+
+    protected MarkupString Status(SensorSettings sensor)
+    {
+        return onlineSensors.Contains(sensor.Guid)
+            ? new MarkupString("<i class=\"oi oi-media-record icon-green\"></i>")
+            : new MarkupString("<i class=\"oi oi-media-record icon-red\"></i>");
     }
 }

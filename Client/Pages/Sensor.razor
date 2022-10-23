@@ -2,6 +2,7 @@
 @page "/sensor/{Id:guid}"
 
 @inject ISensorService sensorService
+@inject ISensorOnlineService sensorOnlineService
 
 @if (!Id.HasValue)
 {
@@ -14,6 +15,9 @@ else
 
 <EditForm Model="sensorSettings" OnSubmit="HandleSubmit">
     <div>
+        <label for="online">Online @Status()</label>
+        <br/>
+
         <label for="guid">Guid</label>
         <label class="form-control">@sensorSettings.Guid</label>
 
@@ -43,6 +47,8 @@ else
 
     private MarkupString btnText;
 
+    private bool online;
+
     protected override Task OnInitializedAsync()
     {
         btnText = !Id.HasValue
@@ -55,7 +61,10 @@ else
     protected override async Task OnParametersSetAsync()
     {
         if (Id.HasValue)
+        {
             sensorSettings = await sensorService.Get(Id.Value);
+            online = await sensorOnlineService.SensorOnline(Id.Value);
+        }
     }
 
     protected async Task HandleSubmit()
@@ -69,5 +78,12 @@ else
     protected async Task Delete()
     {
         await sensorService.Delete(Id.Value);
+    }
+
+    protected MarkupString Status()
+    {
+        return online
+            ? new MarkupString("<i class=\"oi oi-media-record icon-green\"></i>")
+            : new MarkupString("<i class=\"oi oi-media-record icon-red\"></i>");
     }
 }
