@@ -15,6 +15,7 @@ using System.Collections.Generic;
 using ComplexPrototypeSystem.Shared;
 using System.IO;
 using System.Runtime.InteropServices;
+using ComplexPrototypeSystem.Server.Messaging;
 
 namespace ComplexPrototypeSystem.Server.Services
 {
@@ -23,6 +24,7 @@ namespace ComplexPrototypeSystem.Server.Services
         private readonly ILogger<TCPServerWorker> logger;
         private readonly SimpleTcpServer server;
         private readonly MessageQueue queue;
+        private readonly SensorOnlineStatus sensorOnlineStatus;
 
         private readonly SensorSettingsDbContext settingsContext;
         private readonly SensorReportDbContext reportsContext;
@@ -31,18 +33,19 @@ namespace ComplexPrototypeSystem.Server.Services
         private readonly int port;
 
         private readonly Dictionary<string, Guid> IpAddressToGuid = new Dictionary<string, Guid>();
-        private readonly Dictionary<Guid, string> GuidToIpAddress = new Dictionary<Guid, string>();
 
         private readonly Dictionary<Opcode, Action<string, int, ArraySegment<byte>>> receiveHandlers;
 
         public TCPServerWorker(
             ILogger<TCPServerWorker> logger,
             MessageQueue queue,
+            SensorOnlineStatus sensorOnlineStatus,
             IConfiguration configuration,
             IServiceProvider serviceProvider)
         {
             this.logger = logger;
             this.queue = queue;
+            this.sensorOnlineStatus = sensorOnlineStatus;
 
             this.settingsContext = serviceProvider
                 .CreateScope().ServiceProvider
@@ -86,7 +89,7 @@ namespace ComplexPrototypeSystem.Server.Services
                     !stoppingToken.IsCancellationRequested)
                 {
                     Guid guid = Guid.Parse(data.Key);
-                    if (GuidToIpAddress.TryGetValue(guid, out var ipAddressPort))
+                    if (sensorOnlineStatus.GuidToIpAddress.TryGetValue(guid, out var ipAddressPort))
                     {
                         server.Send(ipAddressPort, data.Value);
                     }
@@ -120,7 +123,7 @@ namespace ComplexPrototypeSystem.Server.Services
             logger.LogInformation($"[{e.IpPort}]: Disconnected");
 
             if (IpAddressToGuid.TryGetValue(e.IpPort, out Guid guid))
-                GuidToIpAddress.Remove(guid);
+                sensorOnlineStatus.GuidToIpAddress.TryRemove(guid, out _);
 
             IpAddressToGuid.Remove(e.IpPort);
         }
@@ -184,7 +187,7 @@ namespace ComplexPrototypeSystem.Server.Services
                         logger.LogInformation($"[{ipPort}]: New Sensor Added {sensorSettings.Guid} - {sensorSettings.IPAddress}");
 
                         IpAddressToGuid[ipPort] = sensorSettings.Guid;
-                        GuidToIpAddress[sensorSettings.Guid] = ipPort;
+                        sensorOnlineStatus.GuidToIpAddress.TryAdd(sensorSettings.Guid, ipPort);
 
                         using var ms = new MemoryStream();
                         using var bw = new BinaryWriter(ms);
@@ -207,7 +210,7 @@ namespace ComplexPrototypeSystem.Server.Services
                 if (dbSensor != null)
                 {
                     IpAddressToGuid[ipPort] = sensorId;
-                    GuidToIpAddress[sensorId] = ipPort;
+                    sensorOnlineStatus.GuidToIpAddress.TryAdd(sensorId, ipPort);
 
                     if (!dbSensor.IPAddress.Equals(newIp))
                     {

@@ -10,6 +10,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using ComplexPrototypeSystem.Server.Messaging;
 
 namespace ComplexPrototypeSystem.Server
 {
@@ -35,6 +36,7 @@ namespace ComplexPrototypeSystem.Server
             services.AddSwaggerGen();
 
             services.AddSingleton<MessageQueue>();
+            services.AddSingleton<SensorOnlineStatus>();
 
             services.AddHostedService<TCPServerWorker>();
 
