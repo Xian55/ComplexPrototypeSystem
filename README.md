@@ -6,9 +6,9 @@ All three project written in C# .NET Core 3.1 Framework.
 
 * **Service**: Designed to be a Windows Service application. The Sensor purpose is to obtain *average CPU Usage* and *temperature*.
 
-* **Server**: Web API with ASP.NET Core, gives access to the *Sensor Settings* and *Sensor Reports* while authenticated. Data stored in *SQLExpress* via Entity Framework.
+* **Server**: Web API with ASP.NET Core, provides access to the *Sensor Settings* and *Sensor Reports* while authenticated. Data stored in *SQLExpress LocalDB* via Entity Framework.
 
-* **Client**: Blazor WebAssembly client.
+* **Client**: Blazor WebAssembly client. Displays *Sensor Settings*, *Sensor Reports* and Sensor online status. Shows a friendly UI to alter settings, display and delete reports.
 
 The **Service** and **Server** communicates via TCP protocol, to exchange the Sensor Reports and updating Sensor Settings such as polling interval.
 
