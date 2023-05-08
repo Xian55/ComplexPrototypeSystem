@@ -26,14 +26,12 @@ namespace ComplexPrototypeSystem.Server.Services
         private readonly MessageQueue queue;
         private readonly SensorOnlineStatus sensorOnlineStatus;
 
-        private readonly SensorSettingsDbContext settingsContext;
-        private readonly SensorReportDbContext reportsContext;
+        private readonly IServiceProvider serviceProvider;
 
         private readonly string address;
         private readonly int port;
 
         private readonly Dictionary<string, Guid> IpAddressToGuid = new Dictionary<string, Guid>();
-
         private readonly Dictionary<Opcode, Action<string, int, ArraySegment<byte>>> receiveHandlers;
 
         public TCPServerWorker(
@@ -46,14 +44,7 @@ namespace ComplexPrototypeSystem.Server.Services
             this.logger = logger;
             this.queue = queue;
             this.sensorOnlineStatus = sensorOnlineStatus;
-
-            this.settingsContext = serviceProvider
-                .CreateScope().ServiceProvider
-                .GetRequiredService<SensorSettingsDbContext>();
-
-            this.reportsContext = serviceProvider
-                .CreateScope().ServiceProvider
-                .GetRequiredService<SensorReportDbContext>();
+            this.serviceProvider = serviceProvider;
 
             address = configuration["TcpServer:Address"];
             port = Convert.ToInt32(configuration["TcpServer:Port"]);
@@ -178,6 +169,10 @@ namespace ComplexPrototypeSystem.Server.Services
                     IPAddress = newIp,
                 };
 
+                using var scope = serviceProvider.CreateScope();
+                using var settingsContext = scope.ServiceProvider
+                    .GetRequiredService<SensorSettingsDbContext>();
+
                 if (!settingsContext.SensorSettings.Any(x => x.Guid == sensorId))
                 {
                     settingsContext.SensorSettings.Add(sensorSettings);
@@ -205,6 +200,10 @@ namespace ComplexPrototypeSystem.Server.Services
             else
             {
                 logger.LogInformation($"[{ipPort}]: Identified as {sensorId} - Sending Interval");
+
+                using var scope = serviceProvider.CreateScope();
+                using var settingsContext = scope.ServiceProvider
+                    .GetRequiredService<SensorSettingsDbContext>();
 
                 var dbSensor = settingsContext.SensorSettings.FirstOrDefault(x => x.Guid == sensorId);
                 if (dbSensor != null)
@@ -254,6 +253,10 @@ namespace ComplexPrototypeSystem.Server.Services
 
             if (IpAddressToGuid.TryGetValue(IpPort, out Guid id))
             {
+                using var scope = serviceProvider.CreateScope();
+                using var reportsContext = scope.ServiceProvider
+                    .GetRequiredService<SensorReportDbContext>();
+
                 reportsContext.SensorReports.Add(new SensorReport()
                 {
                     SensorGuid = id,
